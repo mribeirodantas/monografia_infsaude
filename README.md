@@ -4,7 +4,9 @@ git clone https://github.com/mribeirodantas/monografia_infsaude.git
 cd monografia_infsaude
 
 # Checando e instalando dependências
+```
 Rscript scripts/setup.R
+```
 
 # Carregando os dados
 Baixe os dados a partir do portal [Integrador RHC do INCA](https://irhc.inca.gov.br/RHCNet/visualizaTabNetExterno.action).
@@ -22,4 +24,7 @@ carregar o arquivo INCA.rds na pasta dados, como é feito pelos arquivos do mode
 necessidade de conexão com a internet.
 
 # esquisse
-Caso queira criar mais gráficos, descomente as primeiras linhas dos arquivos de modelo. Ao utilizar o esquisse, você poderá criar gráficos utilizando basicamente o seu mouse.
+Caso queira criar mais gráficos, descomente as primeiras linhas dos arquivos de modelo. Ao utilizar o esquisse, você poderá criar gráficos utilizando basicamente o seu mouse. Ou então rode diretamente do R o comando abaixo:
+```
+esquisse::esquisser()
+```
