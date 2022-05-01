@@ -1,0 +1,184 @@
+---
+title: "IRHC (INCA)"
+output: 
+  flexdashboard::flex_dashboard:
+    source_code: embed # Permitir fácil acesso ao código do painel
+    orientation: rows
+    vertical_layout: scroll
+---
+
+```{r setup, include=FALSE}
+library(esquisse)
+dados <- readRDS(file = '../dados/INCA.rds')
+# set_i18n("pt")
+# dados_subset <- head(dados, n=1000)
+# esquisse::esquisser(dados_subset)
+```
+
+Principal
+=============================
+Row {data-width=150}
+--------------------------------------
+### Número de indivíduos
+```{r}
+library(flexdashboard)
+
+n_pacientes <- dados |>
+  nrow()
+
+valueBox(value = n_pacientes,
+         icon = "fa-users",
+         caption = "Número de indivíduos",
+         color = "blue")
+```
+
+### Número de municípios com pacientes
+```{r}
+library(flexdashboard)
+
+`%notin%` = function(x,y) !(x %in% y)
+n_municipios <- dados |>
+  # Remover os códigos que não estão de acordo com o formato de código de
+  # município do IBGE
+  dplyr::select(Procedencia) |>
+  dplyr::distinct() |>
+  nrow()
+
+valueBox(value = n_municipios,
+         icon = "fa-map-marker",
+         caption = "Número de municípios",
+         color = "green")
+```
+
+### Número de tipos histológicos em tumor primário
+```{r}
+library(flexdashboard)
+
+n_tp_histologicos <- dados |>
+  # Remover os tipos que não estão de acordo com o formato de código do
+  # CID-O (Classification of Diseases for Oncology)
+  dplyr::filter(nchar(as.character(`Tipo histologico`)) == 6) |>
+  dplyr::distinct(`Tipo histologico`) |>
+  nrow()
+
+valueBox(value = n_tp_histologicos,
+         icon = "fa-search",
+         caption = "Número de tipos histológicos (ICD-O)",
+         color = "red")
+```
+
+Row
+----------------------------------
+### Número de diagnósticos ao longo dos anos
+```{r}
+library(lubridate)
+library(ggplot2)
+library(plotly)
+library(scales)
+
+g <- dados |>
+    mutate(`Ano diagnostico` = as.numeric(`Ano diagnostico`)) |>
+    ggplot() +
+    aes(x = `Ano diagnostico`) +
+    geom_histogram(bins = 13, fill = "#4682B4", col = "white") +
+    labs(
+        x = "Ano de diagnóstico",
+        y = "Número de casos",
+        title = "Número de casos nos últimos 10 anos",
+    ) +
+    theme_minimal() +
+    scale_y_continuous(labels = scales::format_format(scientific = FALSE)) +
+    scale_x_continuous(breaks = seq(2009, 2021), lim = c(2009, 2021))
+
+ggplotly(g)
+```
+
+### Número diagnósticos entre os principais tipos histológicos
+```{r}
+library(lubridate)
+library(ggplot2)
+library(plotly)
+library(scales)
+
+dados |>
+  select(`Tipo histologico`) |>
+  table() |>
+  sort() |>
+  tail(n=10) |>
+  names() -> principais_tipos_histo
+
+g <- dados |>
+  filter(`Tipo histologico` %in% principais_tipos_histo) |> 
+  mutate(`Tipo histologico` = forcats::fct_infreq(`Tipo histologico`)) |> 
+  ggplot() +
+  aes(x = `Tipo histologico`) +
+  geom_histogram(bins = 13, fill = "#4682B4", col = "white", stat="count") +
+  labs(
+      x = "Tipo histológico",
+      y = "Número de casos",
+      title = "Número de casos entre os principais tipos histológicos",
+  ) +
+  theme_minimal() +
+  scale_y_continuous(labels = scales::format_format(scientific = FALSE))
+ggplotly(g)
+```
+
+
+Row
+--------------------------------------
+Dados de diagnósticos em anos recentes podem estar desatualizados ou faltantes.
+
+# Overview {.sidebar}
+A base de Registros Hospitalares de Câncer processada e disponibilizada pelo Instituto Nacional do Câncer através do Integrador RHC contém dados epidemiológicos sobre pacientes diagnosticados com câncer nos hospitais habilitados na atenção Especializada em Oncologia do SUS (registro obrigatório), assim como em oturos hospitais (registro opcional).
+
+# Sócio-econômicos {data-navmenu="Indicadores"}
+```{r}
+library(ggplot2)
+library(plotly)
+library(dplyr)
+
+dados %>%
+ filter(!is.na(`Grau de instrucao`)) %>%
+  filter(!is.na(Sexo)) %>%
+ ggplot() +
+  aes(x = `Grau de instrucao`) +
+  geom_bar(fill = "#0C4C8A") +
+  scale_x_discrete(labels = function(x) { gsub("\\s",
+                                              "\n", x) }) +
+  labs(
+    y = "Número de indivíduos",
+    title = "Grau de instrução",
+    x = ""
+  ) +
+  theme_minimal() +
+  scale_y_continuous(labels = scales::format_format(scientific = FALSE)) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.5)) +
+  facet_wrap(vars(Sexo)) -> g
+ggplotly(g)
+```
+
+# Saúde {data-navmenu="Indicadores"}
+```{r}
+library(ggplot2)
+library(plotly)
+library(dplyr)
+dados %>%
+ filter(!is.na(Alcoolismo)) %>%
+  filter(!is.na(Sexo)) %>%
+ ggplot() +
+  aes(x = Alcoolismo) +
+  geom_bar(fill = "#0C4C8A") +
+  labs(
+    y = "Número de indivíduos",
+    title = "Alcoolismo",
+    x = ''
+  ) +
+  theme_minimal() +
+  scale_y_continuous(labels = scales::format_format(scientific = FALSE)) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.5)) +
+  facet_wrap(vars(Sexo)) -> g
+ggplotly(g)
+```
+
+# Sobre
+Esse modelo de painel de indicadores foi desenvolvido por Marcel Ribeiro-Dantas (mribeirodantas@hey.com) como parte de sua monografia como pré-requisito de conclusão para o curso de especialização em Informática na Saúde na Universidade Federal do Rio Grande do Norte.

@@ -1,0 +1,173 @@
+---
+title: "IRHC (INCA)"
+output: 
+  flexdashboard::flex_dashboard:
+    source_code: embed # Permitir fácil acesso ao código do painel
+    orientation: rows
+    vertical_layout: scroll
+---
+
+```{r setup, include=FALSE}
+library(esquisse)
+library(geobr)
+library(tidyverse)
+library(ggspatial)
+library(sf)
+
+dados <- readRDS(file = '../dados/INCA.rds')
+# set_i18n("pt")
+# dados_subset <- head(dados, n=1000)
+# esquisse::esquisser(dados_subset)
+```
+
+Principal
+=============================
+
+Row
+----------------------------------
+### Número de diagnósticos por estado
+```{r results='hide'}
+estados_Brasil <- read_state(code_state = "all", year=2020) |>
+  dplyr::select(-c("code_state","code_region","name_region"))
+
+estados_Brasil <- st_simplify(estados_Brasil,
+                             preserveTopology = FALSE,
+                             dTolerance = 1000)
+
+dados |>
+  group_by(`UF da unidade hospitalar`) |>
+  mutate(n_casos_UF = n()) |>
+  ungroup() |>
+  dplyr::select(`UF da unidade hospitalar`, n_casos_UF) |>
+  rename(abbrev_state = `UF da unidade hospitalar`) |>
+  distinct() -> dados_p_mapa
+
+Brasil <- estados_Brasil |>
+  full_join(dados_p_mapa, by = "abbrev_state")
+
+Brasil %>% 
+  ggplot() +
+  geom_sf(aes(fill = n_casos_UF),size=.15) +
+  geom_sf_label(aes(label = name_state),
+                label.padding = unit(0.5, "mm"),
+                size = 2) +
+  xlab("Longitude") + 
+  ylab("Latitude") +
+  annotation_scale(location = "bl") +
+  annotation_north_arrow(location = "br") +
+  scale_fill_gradient2(mid = "white", high = "firebrick4", name = "Número de casos", labels = scales::comma) + 
+  labs(fill = "",
+       title = "Número absoluto de casos por estado da unidade hospitalar") 
+```
+
+### Número de diagnósticos por estado
+```{r results='hide'}
+estados_Brasil <- read_state(code_state = "all", year=2020) |>
+  dplyr::select(-c("code_state","code_region","name_region"))
+
+estados_Brasil <- st_simplify(estados_Brasil,
+                             preserveTopology = FALSE,
+                             dTolerance = 1000)
+
+dados |>
+  group_by(`UF de procedencia`) |>
+  mutate(n_casos_UF = n()) |>
+  ungroup() |>
+  dplyr::select(`UF de procedencia`, n_casos_UF) |>
+  rename(abbrev_state = `UF de procedencia`) |>
+  distinct() -> dados_p_mapa
+
+Brasil <- estados_Brasil |>
+  full_join(dados_p_mapa, by = "abbrev_state")
+
+Brasil %>% 
+  ggplot() +
+  geom_sf(aes(fill = n_casos_UF),size=.15) +
+  geom_sf_label(aes(label = name_state),
+                label.padding = unit(0.5, "mm"),
+                size = 2) +
+  xlab("Longitude") + 
+  ylab("Latitude") +
+  annotation_scale(location = "bl") +
+  annotation_north_arrow(location = "br") +
+  scale_fill_gradient2(mid = "white", high = "firebrick4", name = "Número de casos", labels = scales::comma) + 
+  labs(fill = "",
+       title = "Número absoluto de casos por estado de procedência") 
+```
+
+# Estado
+### Número de diagnósticos por município da unidade hospitalar
+```{r results='hide'}
+municipios_SP <- read_municipality(code_muni = "all",
+                                   year=2020) |>
+  filter(name_state == 'São Paulo') |>
+  dplyr::select(-c("code_state","abbrev_state","code_region","name_region","name_state"))
+
+municipios_SP <- st_simplify(municipios_SP,
+                             preserveTopology = FALSE,
+                             dTolerance = 1000)
+
+dados |>
+  filter(`UF da unidade hospitalar` == 'SP') |>
+  group_by(`Municipio da unid hospitalar`) |>
+  mutate(n_casos_municipio = n()) |>
+  ungroup() |>
+  dplyr::select(`Municipio da unid hospitalar`, n_casos_municipio) |>
+  rename(name_muni = `Municipio da unid hospitalar`) |>
+  distinct() -> dados_p_mapa
+
+SP <- municipios_SP |>
+  full_join(dados_p_mapa, by = "name_muni")
+
+ggplot(SP) +
+  geom_sf(aes(fill = n_casos_municipio),
+          size=.15) +
+  scale_fill_gradient2(mid = "white", high = "firebrick4", name = "Número de casos", labels = scales::comma) + 
+  xlab("Longitude") +
+  ylab("Latitude") +
+  annotation_scale(location = "bl") +
+  annotation_north_arrow(location = "br") +
+  labs(fill = "",
+       title = "São Paulo")
+```
+
+### Número de diagnósticos por município de procedência
+```{r results='hide'}
+municipios_SP <- read_municipality(code_muni = "all",
+                                   year=2020) |>
+  filter(name_state == 'São Paulo') |>
+  dplyr::select(-c("code_state","abbrev_state","code_region","name_region","name_state"))
+
+municipios_SP <- st_simplify(municipios_SP,
+                             preserveTopology = FALSE,
+                             dTolerance = 1000)
+
+dados |>
+  filter(`UF de procedencia` == 'SP') |>
+  group_by(Procedencia) |>
+  mutate(n_casos_municipio = n()) |>
+  ungroup() |>
+  dplyr::select(Procedencia, n_casos_municipio) |>
+  rename(name_muni = Procedencia) |>
+  distinct() -> dados_p_mapa
+
+SP <- municipios_SP |>
+  full_join(dados_p_mapa, by = "name_muni")
+
+ggplot(SP) +
+  geom_sf(aes(fill = n_casos_municipio),
+          size=.15) +
+  scale_fill_gradient2(mid = "white", high = "firebrick4", name = "Número de casos", labels = scales::comma) + 
+  xlab("Longitude") +
+  ylab("Latitude") +
+  annotation_scale(location = "bl") +
+  annotation_north_arrow(location = "br") +
+  labs(fill = "",
+       title = "São Paulo")
+```
+
+# Overview {.sidebar}
+A base de Registros Hospitalares de Câncer processada e disponibilizada pelo Instituto Nacional do Câncer através do Integrador RHC contém dados epidemiológicos sobre pacientes diagnosticados com câncer nos hospitais habilitados na atenção Especializada em Oncologia do SUS (registro obrigatório), assim como em oturos hospitais (registro opcional).
+
+# Sobre
+Esse modelo de painel de indicadores foi desenvolvido por Marcel Ribeiro-Dantas (mribeirodantas@hey.com) como parte de sua monografia como pré-requisito de conclusão para o curso de especialização em Informática na Saúde na Universidade Federal do Rio Grande do Norte.
