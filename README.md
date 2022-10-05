@@ -1,7 +1,9 @@
 # Baixando essa ferramenta
 
+```
 git clone https://github.com/mribeirodantas/monografia_infsaude.git
 cd monografia_infsaude
+```
 
 # Checando e instalando dependências
 ```
